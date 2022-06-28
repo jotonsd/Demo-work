@@ -17,7 +17,11 @@ class ProductController extends Controller
      */
     public function index()
     {
-        return view('products.index');
+        $data = array(
+            'products' => Product::orderBy('id', 'desc')->paginate(2),
+            'variants' => Variant::all(), 
+        );
+        return view('products.index',$data);
     }
 
     /**
@@ -39,6 +43,29 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        dd($request->product_variant);
+
+        $basic = array(
+            'title' => $request->title, 
+            'sku' => $request->sku, 
+            'description' => $request->description, 
+        );
+        $product_id = Product::insertGetId($basic);
+        if ($product_id>0) {
+            foreach ($request->product_variant as $product_variant) {
+                foreach ($product_variant['tags'] as $tag) {
+                    $variants = array(
+                        'variant' => $tag, 
+                        'variant_id' => $product_variant['option'],
+                        'product_id' => $product_id,
+                    );
+                    ProductVariant::insert($variants);
+                }
+            }
+        } else {
+            # code...
+        }
+        
 
     }
 
@@ -87,5 +114,38 @@ class ProductController extends Controller
     public function destroy(Product $product)
     {
         //
+    }
+
+    /**
+     * Display the searched resource.
+     *
+     * @param \App\Models\Product $product
+     * @return \Illuminate\Http\Response
+     */
+    public function search(Request $request)
+    {
+        // dd($request->all());
+        $title = $request->title;
+        $variant = $request->variant;
+        $price_from = $request->price_from;
+        $price_to = $request->price_to;
+        $date = $request->date;
+        $products = Product::join('product_variants', 'product_variants.product_id','products.id')
+                        ->join('product_variant_prices', 'product_variant_prices.product_id','products.id')
+                        ->where('products.title','LIKE', '%'.$title.'%')
+                        ->orWhere('product_variants.variant','LIKE', '%'.$variant.'%')
+                        ->orWhereBetween('product_variant_prices.price',[$price_from, $price_to])
+                        ->groupBy('product_variants.variant')
+                        ->paginate(2);
+        $data = array(
+            'title' => $title,
+            'variant_name' => $variant,
+            'price_from' => $price_from,
+            'price_to' => $price_to,
+            'date' => $date,
+            'products' => $products,
+            'variants' => Variant::all(), 
+        );
+        return view('products.index',$data);
     }
 }

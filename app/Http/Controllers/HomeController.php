@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\User;
 
 class HomeController extends Controller
 {
@@ -24,5 +25,15 @@ class HomeController extends Controller
     public function index()
     {
         return view('home');
+    }
+
+     /**
+     * the api get users data.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
+    public function get_users()
+    {
+        return User::all();
     }
 }
