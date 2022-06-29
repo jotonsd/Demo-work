@@ -42,16 +42,17 @@ class ProductController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
-    {
-        dd($request->product_variant);
+    {        
 
         $basic = array(
             'title' => $request->title, 
             'sku' => $request->sku, 
             'description' => $request->description, 
         );
+        // insert basic information of product and get id
         $product_id = Product::insertGetId($basic);
         if ($product_id>0) {
+            // data insert in product variants
             foreach ($request->product_variant as $product_variant) {
                 foreach ($product_variant['tags'] as $tag) {
                     $variants = array(
@@ -62,6 +63,26 @@ class ProductController extends Controller
                     ProductVariant::insert($variants);
                 }
             }
+
+            // data insert in prices table
+            foreach ($request->product_variant_prices as $value) {
+                $data['title'] = explode('/',$value['title']);
+                $product_variant_one = ProductVariant::where('variant',$data['title'][0])->orderBy('id','desc')->first();
+                $product_variant_two = ProductVariant::where('variant',$data['title'][1])->orderBy('id','desc')->first();
+                $product_variant_three = ProductVariant::where('variant',$data['title'][2])->orderBy('id','desc')->first();
+                $prices = array(
+                    'price' =>  $value['price'], 
+                    'stock' =>  $value['stock'], 
+                    'product_id' =>  $product_id, 
+                    'product_variant_one' =>  $product_variant_one->id, 
+                    'product_variant_two' =>  $product_variant_two->id, 
+                    'product_variant_three' =>  $product_variant_three->id, 
+                );
+                ProductVariantPrice::insert($prices);
+            }
+
+            return response()->json(['status'=>true, 'message'=>'Product saved successfully!']);
+
         } else {
             # code...
         }
